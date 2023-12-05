@@ -1,6 +1,7 @@
 import argparse
 import csv
 import os
+import random
 import re
 from collections import Counter
 
@@ -8,6 +9,8 @@ import jsonlines
 import matplotlib.pyplot as plt
 import seaborn as sns
 from tqdm.auto import tqdm
+
+random.seed(11944004)
 
 parser = argparse.ArgumentParser(description='Read contents of CSV files')
 parser.add_argument('files', metavar='file', nargs='*',
@@ -64,7 +67,7 @@ for text in tqdm(input_text_list):
     for input_text, output_text in extracted_content:
         input_text = postprocess(input_text)
         output_text = postprocess(output_text)
-        if len(input_text) <= 3:
+        if len(input_text) < 3:
             continue
         if contains_three_continuous_chars(input_text):
             continue
@@ -95,6 +98,38 @@ print(
     f"Samples with longer than 6 output chars: {len([d for d in dataset if len(d['output']) > 6])}")
 with jsonlines.open("emoji_dataset/dataset.jsonl", "w") as writer:
     writer.write_all(dataset)
+
+
+def split_jsonl(input_file, train_file, val_file, split_ratio=0.8):
+    if split_ratio <= 0 or split_ratio >= 1:
+        raise ValueError("Split ratio should be between 0 and 1")
+
+    with jsonlines.open(input_file, 'r') as reader:
+        data = list(reader)
+        random.shuffle(data)
+
+        split_index = int(len(data) * split_ratio)
+        train_data = data[:split_index]
+        val_data = data[split_index:]
+
+    # Writing to train.jsonl
+    with jsonlines.open(train_file, 'w') as writer_train:
+        for item in train_data:
+            writer_train.write(item)
+
+    # Writing to val.jsonl
+    with jsonlines.open(val_file, 'w') as writer_val:
+        for item in val_data:
+            writer_val.write(item)
+
+
+input_jsonl = 'emoji_dataset/dataset.jsonl'
+train_output = 'emoji_dataset/train.jsonl'
+val_output = 'emoji_dataset/val.jsonl'
+
+split_ratio = 0.95
+split_jsonl(input_jsonl, train_output, val_output, split_ratio)
+
 
 print("Plotting...")
 input_lengths = [len(d['input']) for d in dataset]
