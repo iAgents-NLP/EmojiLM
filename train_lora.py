@@ -125,7 +125,7 @@ def main():
         # Data & Saving
         dataloader_num_workers=4,
         generation_max_length=5,
-        output_dir="./results",
+        output_dir="./EmojiLMSeq2SeqLoRA",
         predict_with_generate=True,
         evaluation_strategy="epoch",
         load_best_model_at_end=True,
@@ -134,6 +134,9 @@ def main():
         overwrite_output_dir=True,
         include_inputs_for_metrics=True,
         save_total_limit=10,
+        # hub
+        push_to_hub=True,
+        hub_strategy='end',
     )
 
     trainer = Seq2SeqTrainer(
@@ -147,7 +150,7 @@ def main():
     )
 
     trainer.train()
-    trainer.save_model("results/best_checkpoint")
+    trainer.save_model("EmojiLMSeq2SeqLoRA/best_checkpoint")
 
 
 if __name__ == "__main__":
