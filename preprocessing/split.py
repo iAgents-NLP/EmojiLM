@@ -1,6 +1,7 @@
-import jsonlines
-import random
 import os
+import random
+
+import jsonlines
 
 
 def split_jsonl(input_file, train_file, val_file, split_ratio=0.8):

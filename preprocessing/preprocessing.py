@@ -1,9 +1,10 @@
-from collections import Counter
-import jsonlines
-import re
-import csv
 import argparse
+import csv
 import os
+import re
+from collections import Counter
+
+import jsonlines
 from tqdm.auto import tqdm
 
 parser = argparse.ArgumentParser(description='Read contents of CSV files')
