@@ -1,5 +1,6 @@
 import torch
 import os
+import random
 
 import evaluate
 import jsonlines
@@ -9,10 +10,32 @@ from peft import get_peft_model, LoraConfig, TaskType
 from datasets import load_dataset
 
 
+class SampleLabelCollator(DataCollatorForSeq2Seq):
+    def __call__(self, features, *args, **kwargs):
+        labels = [feature["labels"]
+                  for feature in features] if "labels" in features[0].keys() else None
+        if labels is None:
+            return super().__call__(features, *args, **kwargs)
+
+        for i in range(len(labels)):
+            label = labels[i]
+            emoji_length = len(label) - 2  # BOS and EOS
+            if emoji_length > 3:
+                # print(label, self.tokenizer.decode(label), end=" -> ")
+                sampled = [label[i]
+                           for i in sorted(random.sample(range(len(label)), 3))]  # to prevent the same order
+                label = [label[0], *sampled, label[-1]]
+                # print(label, self.tokenizer.decode(label))
+                labels[i] = label
+        features = [{"labels": label, **feature}
+                    for label, feature in zip(labels, features)]
+        return super().__call__(features, *args, **kwargs)
+
+
 def main():
     os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     dataset_name = "emoji_dataset"
-    model_name = "google/mt5-large"
+    model_name = "google/mt5-base"
 
     task_prefix = "emoji: "
     max_length = 128
@@ -83,8 +106,8 @@ def main():
     model = get_peft_model(model, peft_config)
     model.print_trainable_parameters()
 
-    data_collator = DataCollatorForSeq2Seq(
-        tokenizer,
+    data_collator = SampleLabelCollator(
+        tokenizer=tokenizer,
         model=model,
         padding=True,
         pad_to_multiple_of=8,
@@ -122,7 +145,7 @@ def main():
         data_collator=data_collator,
         compute_metrics=compute_metrics,
     )
-    
+
     trainer.train()
     trainer.save_model("results/best_checkpoint")
 
