@@ -122,8 +122,9 @@ def main():
         data_collator=data_collator,
         compute_metrics=compute_metrics,
     )
-    # trainer.train()
-    trainer.save("results/best_checkpoint")
+    
+    trainer.train()
+    trainer.save_model("results/best_checkpoint")
 
 
 if __name__ == "__main__":
