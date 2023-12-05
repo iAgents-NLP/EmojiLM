@@ -1,3 +1,5 @@
+import os
+
 import evaluate
 import jsonlines
 import numpy as np
@@ -6,6 +8,7 @@ from datasets import load_dataset
 
 
 def main():
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     dataset_name = "emoji_dataset"
     model_name = "google/mt5-small"
 
@@ -48,18 +51,17 @@ def main():
 
     def compute_metrics(eval_preds):
         nonlocal current_eval_epoch
-        predictions = eval_preds.predictions
         labels = eval_preds.label_ids
         labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
 
         decoded_inputs = tokenizer.batch_decode(
             eval_preds.inputs, skip_special_tokens=True)
         decoded_preds = tokenizer.batch_decode(
-            predictions, skip_special_tokens=True)
+            eval_preds.predictions, skip_special_tokens=True)
         decoded_labels = tokenizer.batch_decode(
             labels, skip_special_tokens=True)
 
-        with jsonlines.open(f"logs/predictions_{current_eval_epoch}.jsonl", "w") as writer:
+        with jsonlines.open(f"results/predictions_{current_eval_epoch}.jsonl", "w") as writer:
             output_jsonl = []
             for input_text, output_text, gt_text in zip(decoded_inputs, decoded_preds, decoded_labels):
                 output_dict = {"input": input_text,
@@ -83,14 +85,11 @@ def main():
     )
 
     training_args = Seq2SeqTrainingArguments(
-        per_device_train_batch_size=2,
+        per_device_train_batch_size=8,
         per_device_eval_batch_size=8,
-        learning_rate=1e-4,
-
-        warmup_steps=10,
-        num_train_epochs=5,
-        fp16=True,
-
+        learning_rate=1e-5,
+        num_train_epochs=500,
+        warmup_steps=500,
         output_dir="./results",
         report_to="tensorboard",
         dataloader_num_workers=8,
@@ -98,10 +97,11 @@ def main():
         evaluation_strategy="epoch",
         load_best_model_at_end=True,
         logging_dir="./logs",
-        logging_steps=5,
+        logging_steps=100,
         save_strategy='epoch',
         overwrite_output_dir=True,
         include_inputs_for_metrics=True,
+        generation_max_length=5,
     )
 
     trainer = Seq2SeqTrainer(
