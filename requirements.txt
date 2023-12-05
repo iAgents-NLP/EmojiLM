@@ -1,0 +1,6 @@
+datasets
+peft
+transformers
+numpy
+jsonlines
+evaluate

@@ -1,3 +1,4 @@
+import torch
 import os
 
 import evaluate
@@ -18,25 +19,21 @@ def main():
 
     dataset = load_dataset(dataset_name)
     tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False)
-    tokenizer.deprecation_warnings["Asking-to-pad-a-fast-tokenizer"] = True
-
-    # # Update Tokenizers to include all emojis
-    # emojis = open("emoji_dataset/emojis.txt", "r").read().split("|")
-    # print(emojis)
-    # for emoji_str in emojis:
-    #     for emoji in emoji_str:
-    #         if not tokenizer.get_vocab().get(emoji):
-    #             tokenizer.get_vocab()[emoji] = len(tokenizer.get_vocab())
-    #             print("Added", emoji, "to vocab")
+    tokenizer.truncation_side = 'left'
 
     def preprocess_function(examples):
-        inputs, targets = examples['input'], examples['output']
+        inputs, targets = [], []
+        examples['input'], examples['output']
+        for i in range(len(examples['input'])):
+            if examples['input'][i] and examples['output'][i]:
+                inputs.append(examples['input'][i])
+                targets.append(examples['output'][i])
 
         inputs = [task_prefix + inp for inp in inputs]
         model_inputs = tokenizer(
-            inputs, max_length=max_length, padding='longest', truncation=True)
+            inputs, max_length=max_length, padding='do_not_pad', truncation=True)
         labels = tokenizer(
-            text_target=targets, max_length=max_length, padding='longest', truncation=True)
+            text_target=targets, max_length=max_length, padding='do_not_pad', truncation=True)
 
         labels["input_ids"] = [
             [(l if l != tokenizer.pad_token_id else -100) for l in label] for label in labels["input_ids"]
@@ -87,27 +84,31 @@ def main():
     data_collator = DataCollatorForSeq2Seq(
         tokenizer,
         model=model,
+        padding=True,
         pad_to_multiple_of=8,
     )
 
     training_args = Seq2SeqTrainingArguments(
-        per_device_train_batch_size=24,
-        per_device_eval_batch_size=24,
+        # Actual Training
+        per_device_train_batch_size=8,
+        per_device_eval_batch_size=8,
         learning_rate=1e-4,
         num_train_epochs=500,
         warmup_steps=500,
+        label_smoothing_factor=0.1,
+        # Data & Saving
+        dataloader_num_workers=4,
+        generation_max_length=5,
         output_dir="./results",
-        report_to="tensorboard",
-        dataloader_num_workers=8,
+        torch_compile=hasattr(torch, "compile"),
         predict_with_generate=True,
         evaluation_strategy="epoch",
         load_best_model_at_end=True,
-        logging_dir="./logs",
         logging_steps=100,
         save_strategy='epoch',
         overwrite_output_dir=True,
         include_inputs_for_metrics=True,
-        generation_max_length=5,
+        save_total_limit=10,
     )
 
     trainer = Seq2SeqTrainer(
