@@ -45,9 +45,10 @@ def extract_continuous_emojis(text):
 
 
 def postprocess(text):
-    text_without_urls = re.sub(r"https?://\S+|www\.\S+", "", text)
-    cleaned_text = re.sub(r"^[\s,。、，]+|[\s,。、，]+$", "", text_without_urls)
-    return cleaned_text
+    text = re.sub(r"\ufffd", "", text)
+    text = re.sub(r"https?://\S+|www\.\S+", "", text)
+    text = re.sub(r"^[\s,。、，]+|[\s,。、，]+$", "", text)
+    return text
 
 
 def contains_three_continuous_chars(sentence):
@@ -66,6 +67,8 @@ for text in tqdm(input_text_list):
         if len(input_text) <= 3:
             continue
         if contains_three_continuous_chars(input_text):
+            continue
+        if len(input_text) == 0 or len(output_text) == 0:
             continue
         dataset.append({"input": input_text, "output": output_text})
 
