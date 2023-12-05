@@ -1,31 +1,35 @@
+from collections import Counter
 import jsonlines
 import re
 import csv
 import argparse
+import os
 
 parser = argparse.ArgumentParser(description='Read contents of CSV files')
-parser.add_argument('files', metavar='file', nargs='+',
+parser.add_argument('files', metavar='file', nargs='*',
                     help='CSV file(s) to read')
 args = parser.parse_args()
 
-range_list = [
-    ["1f170", "1f251"],
-    ["1f300", "1f64f"],
-    ["1f680", "1f6c5"],
-    ["2702", "27b0"],
-]
-emoji_unicode = [int("1f004", 16), int("1f0cf", 16), int("24c2", 16)]
-for a, b in range_list:
-    emoji_unicode.extend(list(range(int(a, 16), int(b, 16) + 1)))
+csv_files = args.files
+if len(csv_files) == 0:
+    csv_files = [os.path.join("emoji_dataset", f)
+                 for f in os.listdir("emoji_dataset")
+                 if f.endswith(".csv")]
 
-in_content = []
-for filename in args.files:
+input_text_list = []
+for filename in csv_files:
     with open(filename) as f:
         reader = csv.reader(f)
         next(reader)  # skip header
         for row in reader:
-            in_content.append(row[0])
-print(f"Total {len(in_content)} lines")
+            input_text_list.append(row[0])
+print(f"Total {len(input_text_list)} lines before preprocessing")
+
+
+def preprocess(text):
+    text = re.sub(r"[\u2009\n]", " ", text)
+    text = re.sub(r"[\u200c\u200d\ufe0f]", "", text)
+    return text
 
 
 def extract_continuous_emojis(text):
@@ -37,12 +41,8 @@ def extract_continuous_emojis(text):
 
 
 def postprocess(text):
-    url_pattern = re.compile(r"https?://\S+|www\.\S+")
-
-    # Replace URLs in the text with an empty string
-    text_without_urls = url_pattern.sub("", text)
+    text_without_urls = re.sub(r"https?://\S+|www\.\S+", "", text)
     cleaned_text = re.sub(r"^[\s,。、，]+|[\s,。、，]+$", "", text_without_urls)
-
     return cleaned_text
 
 
@@ -52,19 +52,29 @@ def contains_three_continuous_chars(sentence):
     return bool(match)
 
 
-in_out_split = []
-for data in in_content:
-    extracted_content = extract_continuous_emojis(data)
-    for input, output in extracted_content:
-        input = postprocess(input)
-        output = postprocess(output)
-        if len(input) <= 3:
+dataset = []
+for text in input_text_list:
+    text = preprocess(text)
+    extracted_content = extract_continuous_emojis(text)
+    for input_text, output_text in extracted_content:
+        input_text = postprocess(input_text)
+        output_text = postprocess(output_text)
+        if len(input_text) <= 3:
             continue
-        if contains_three_continuous_chars(input):
+        if contains_three_continuous_chars(input_text):
             continue
-        in_out_split.append({"input": input, "output": output})
-print(f"Total {len(in_out_split)} lines")
+        dataset.append({"input": input_text, "output": output_text})
+
+print(f"Total {len(dataset)} lines after preprocessing")
 print(
-    f"Datas with longer than 128 chars: {len([d for d in in_out_split if len(d['input']) > 128])}")
+    f"Samples with longer than 128 chars: {len([d for d in dataset if len(d['input']) > 128])}")
+
 with jsonlines.open("emoji_dataset/dataset.jsonl", "w") as writer:
-    writer.write_all(in_out_split)
+    writer.write_all(dataset)
+
+
+# count output emoji frequency
+output_emoji_counter = Counter()
+for text in dataset:
+    output_emoji_counter.update(text['output'])
+print(output_emoji_counter)
