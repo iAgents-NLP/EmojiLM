@@ -37,7 +37,7 @@ with open("datasets/dump_20231204.json", "r") as f:
 
 
 def extract_continuous_emojis(text):
-    with open("preprocessing/patten.txt", "r") as f:
+    with open("emoji_dataset/emojis.txt", "r") as f:
         pattern = f.readline()
     pattern = f"([^{pattern}]+)([{pattern}|\n]+)"
     matches = re.findall(pattern, text)
@@ -75,7 +75,7 @@ for data in in_content:
         in_out_split.append({"input": input, "output": output})
 
 
-with jsonlines.open("datasets/dataset.jsonl", "w") as writer:
+with jsonlines.open("emoji_dataset/dataset.jsonl", "w") as writer:
     writer.write_all(in_out_split)
 
 """
