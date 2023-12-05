@@ -1,13 +1,13 @@
-import torch
 import os
 import random
 
-import evaluate
 import jsonlines
 import numpy as np
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, DataCollatorForSeq2Seq, Seq2SeqTrainingArguments, Seq2SeqTrainer
-from peft import get_peft_model, LoraConfig, TaskType
 from datasets import load_dataset
+from peft import LoraConfig, TaskType, get_peft_model
+from transformers import (AutoModelForSeq2SeqLM, AutoTokenizer,
+                          DataCollatorForSeq2Seq, Seq2SeqTrainer,
+                          Seq2SeqTrainingArguments)
 
 
 class SampleLabelCollator(DataCollatorForSeq2Seq):
@@ -67,7 +67,6 @@ def main():
     dataset = dataset.map(preprocess_function, batched=True)
 
     # Training
-    metric = evaluate.load("rouge")
     current_eval_epoch = 0
 
     def compute_metrics(eval_preds):
@@ -84,19 +83,21 @@ def main():
         decoded_labels = tokenizer.batch_decode(
             labels, skip_special_tokens=True)
 
-        with jsonlines.open(f"results/predictions_{current_eval_epoch}.jsonl", "w") as writer:
-            output_jsonl = []
-            for input_text, output_text, gt_text in zip(decoded_inputs, decoded_preds, decoded_labels):
-                output_dict = {"input": input_text,
-                               "output": output_text, "gt": gt_text}
-                output_jsonl.append(output_dict)
+        output_file = f"results/predictions_{current_eval_epoch}.jsonl"
+        output_jsonl = []
+        for input_text, output_text, gt_text in zip(decoded_inputs, decoded_preds, decoded_labels):
+            output_dict = {
+                "input": input_text,
+                "output": output_text,
+                "gt": gt_text
+            }
+            output_jsonl.append(output_dict)
+
+        with jsonlines.open(output_file, "w") as writer:
             writer.write_all(output_jsonl)
-
         current_eval_epoch += 1
-        metric.add_batch(predictions=decoded_preds, references=decoded_labels)
-        rouge_score = metric.compute()
 
-        return rouge_score
+        return {}
 
     peft_config = LoraConfig(
         task_type=TaskType.SEQ_2_SEQ_LM, inference_mode=False, r=4, lora_alpha=32, lora_dropout=0.1
@@ -115,17 +116,16 @@ def main():
 
     training_args = Seq2SeqTrainingArguments(
         # Actual Training
-        per_device_train_batch_size=8,
-        per_device_eval_batch_size=8,
+        per_device_train_batch_size=24,
+        per_device_eval_batch_size=24,
         learning_rate=1e-4,
-        num_train_epochs=500,
+        num_train_epochs=100,
         warmup_steps=500,
         label_smoothing_factor=0.1,
         # Data & Saving
         dataloader_num_workers=4,
         generation_max_length=5,
         output_dir="./results",
-        torch_compile=False,  # hasattr(torch, "compile"),
         predict_with_generate=True,
         evaluation_strategy="epoch",
         load_best_model_at_end=True,
