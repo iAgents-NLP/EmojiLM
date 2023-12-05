@@ -1,5 +1,7 @@
+import sys
 import jsonlines
 import re
+import csv
 
 
 range_list = [
@@ -12,30 +14,16 @@ emoji_unicode = [int("1f004", 16), int("1f0cf", 16), int("24c2", 16)]
 for a, b in range_list:
     emoji_unicode.extend(list(range(int(a, 16), int(b, 16) + 1)))
 
-in_content = []
-out_content = []
-with open("datasets/dump_20231204.json", "r") as f:
-    for data in jsonlines.Reader(f):
-        # print(data)
-        if data["Type"] == 1:
-            choose = False
-            for c in data["Content"]:
-                if ord(c) in emoji_unicode:
-                    # print(c)
-                    choose = True
-                    break
-            if choose:
-                in_content.append(
-                    data["Content"]
-                    .replace("\u2009", " ")
-                    .replace("\u200c", "")
-                    .replace("\u200d", "")
-                    .replace("\ufe0f", "")
-                    .replace("\n", " ")
-                )
-            else:
-                out_content.append(data["Content"])
 
+in_content = []
+
+for i in range(1, len(sys.argv)):
+    with open(sys.argv[i]) as f:
+        reader = csv.reader(f)
+        next(reader)
+        for row in reader:
+            in_content.append(row[0])
+print(in_content)
 
 def extract_continuous_emojis(text):
     with open("emoji_dataset/emojis.txt", "r") as f:
