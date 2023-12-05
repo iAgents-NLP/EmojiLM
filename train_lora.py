@@ -128,7 +128,6 @@ def main():
         output_dir="./EmojiLMSeq2SeqLoRA",
         predict_with_generate=True,
         evaluation_strategy="epoch",
-        load_best_model_at_end=True,
         logging_steps=100,
         save_strategy='epoch',
         overwrite_output_dir=True,
@@ -150,7 +149,6 @@ def main():
     )
 
     trainer.train()
-    trainer.save_model("EmojiLMSeq2SeqLoRA/best_checkpoint")
 
 
 if __name__ == "__main__":
