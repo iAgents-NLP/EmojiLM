@@ -4,3 +4,6 @@ transformers
 numpy
 jsonlines
 evaluate
+nltk
+rouge_score
+sentencepiece
