@@ -12,7 +12,7 @@ from datasets import load_dataset
 def main():
     os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     dataset_name = "emoji_dataset"
-    model_name = "google/mt5-base"
+    model_name = "google/mt5-large"
 
     task_prefix = "emoji: "
     max_length = 128
@@ -49,11 +49,13 @@ def main():
 
     def compute_metrics(eval_preds):
         nonlocal current_eval_epoch
+        inputs = eval_preds.inputs
         labels = eval_preds.label_ids
+        inputs = np.where(inputs != -100, inputs, tokenizer.pad_token_id)
         labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
 
         decoded_inputs = tokenizer.batch_decode(
-            eval_preds.inputs, skip_special_tokens=True)
+            inputs, skip_special_tokens=True)
         decoded_preds = tokenizer.batch_decode(
             eval_preds.predictions, skip_special_tokens=True)
         decoded_labels = tokenizer.batch_decode(
@@ -100,7 +102,7 @@ def main():
         dataloader_num_workers=4,
         generation_max_length=5,
         output_dir="./results",
-        torch_compile=hasattr(torch, "compile"),
+        torch_compile=False,  # hasattr(torch, "compile"),
         predict_with_generate=True,
         evaluation_strategy="epoch",
         load_best_model_at_end=True,
@@ -120,7 +122,8 @@ def main():
         data_collator=data_collator,
         compute_metrics=compute_metrics,
     )
-    trainer.train()
+    # trainer.train()
+    trainer.save("results/best_checkpoint")
 
 
 if __name__ == "__main__":
