@@ -5,6 +5,8 @@ import re
 from collections import Counter
 
 import jsonlines
+import matplotlib.pyplot as plt
+import seaborn as sns
 from tqdm.auto import tqdm
 
 parser = argparse.ArgumentParser(description='Read contents of CSV files')
@@ -91,9 +93,43 @@ print(
 with jsonlines.open("emoji_dataset/dataset.jsonl", "w") as writer:
     writer.write_all(dataset)
 
+print("Plotting...")
+input_lengths = [len(d['input']) for d in dataset]
+output_lengths = [len(d['output']) for d in dataset]
+sns.set_theme(style="whitegrid")
 
-# # count output emoji frequency
-# output_emoji_counter = Counter()
-# for text in dataset:
-#     output_emoji_counter.update(text['output'])
-# print(output_emoji_counter)
+fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+
+# Plot input length distribution on a log scale
+sns.histplot(input_lengths, bins=100, ax=axes[0])
+axes[0].set_title('Input Length Distribution')
+axes[0].set_xlabel('Length')
+axes[0].set_ylabel('Count')
+axes[0].set_yscale('log')
+
+# Plot output length distribution on a log scale
+sns.histplot(output_lengths, bins=100, ax=axes[1])
+axes[1].set_title('Output Length Distribution')
+axes[1].set_xlabel('Length')
+axes[1].set_ylabel('Count')
+axes[1].set_yscale('log')
+
+plt.tight_layout()
+plt.savefig("emoji_dataset/length_distributions.png")
+
+# Plot emoji frequency
+emoji_counter = Counter()
+for text in dataset:
+    emoji_counter.update(text['output'])
+plt.figure(figsize=(12, 6))
+
+values = list(emoji_counter.values())
+sorted_idx = sorted(range(len(values)),
+                    key=lambda k: values[k], reverse=True)
+sns.barplot([values[i] for i in sorted_idx])
+plt.xticks([])
+plt.title('Emoji Frequency Distribution')
+plt.ylabel('Count')
+plt.yscale('log')
+plt.tight_layout()
+plt.savefig("emoji_dataset/emoji_distribution.png")
