@@ -27,9 +27,9 @@ def split_jsonl(input_file, train_file, val_file, split_ratio=0.8):
 
 
 # Example usage:
-input_jsonl = 'datasets/dataset.jsonl'
-train_output = 'datasets/train.jsonl'
-val_output = 'datasets/val.jsonl'
+input_jsonl = 'emoji_dataset/dataset.jsonl'
+train_output = 'emoji_dataset/train.jsonl'
+val_output = 'emoji_dataset/val.jsonl'
 
 split_ratio = 0.95
 split_jsonl(input_jsonl, train_output, val_output, split_ratio)
