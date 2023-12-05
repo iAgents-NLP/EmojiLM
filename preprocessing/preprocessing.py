@@ -1,5 +1,4 @@
 import jsonlines
-import json
 import re
 
 
@@ -12,13 +11,10 @@ range_list = [
 emoji_unicode = [int("1f004", 16), int("1f0cf", 16), int("24c2", 16)]
 for a, b in range_list:
     emoji_unicode.extend(list(range(int(a, 16), int(b, 16) + 1)))
-# emoji_unicode = list(map(ord, emoji_unicode))
-# print(emoji_unicode)
-# print(list(map(chr, emoji_unicode)))
-# print("🤮".encode("utf-8"))
+
 in_content = []
 out_content = []
-with open("dump.json", "r") as f:
+with open("datasets/dump_20231204.json", "r") as f:
     for data in jsonlines.Reader(f):
         # print(data)
         if data["Type"] == 1:
@@ -39,27 +35,13 @@ with open("dump.json", "r") as f:
             else:
                 out_content.append(data["Content"])
 
-# print(hex(ord(content[-5][14])))
-# print(int("1f601", 16))
-# print(b"\xF0\x9F\x98\x81".decode("utf-8"))
-# print(ord(b"\xF0\x9F\x98\x81".decode("utf-8")))
-# print(content[-5][14].encode("utf-8"))
-
-# print(type(data))
-# print(in_content)
-# print(out_content)
-
 
 def extract_continuous_emojis(text):
-    with open("patten.txt", "r") as f:
+    with open("preprocessing/patten.txt", "r") as f:
         pattern = f.readline()
     pattern = f"([^{pattern}]+)([{pattern}|\n]+)"
     matches = re.findall(pattern, text)
     return matches
-
-
-print(extract_continuous_emojis("231😊😊\n😊123\n123😊"))
-print(extract_continuous_emojis("231\n123\n123😊"))
 
 
 def postprocess(text):
@@ -72,21 +54,30 @@ def postprocess(text):
     return cleaned_text
 
 
+def contains_three_continuous_chars(sentence):
+    pattern = r"(.)\1\1"  # Pattern to match three continuous characters
+    match = re.search(pattern, sentence)
+    return bool(match)
+
+
 in_out_split = []
 for data in in_content:
     extracted_content = extract_continuous_emojis(data)
     for input, output in extracted_content:
         input = postprocess(input)
+        output = postprocess(output)
+
         if len(input) <= 3:
             continue
-        output = postprocess(output)
+        if contains_three_continuous_chars(input):
+            continue
+
         in_out_split.append({"input": input, "output": output})
 
 
-with open("dataset.json", "w", encoding="utf8") as f:
-    json.dump(in_out_split, f, indent=2, ensure_ascii=False)
+with jsonlines.open("datasets/dataset.jsonl", "w") as writer:
+    writer.write_all(in_out_split)
 
-print(len("小姑子"))
 """
 1F004
 1F0CF
