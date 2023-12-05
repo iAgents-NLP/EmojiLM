@@ -4,6 +4,7 @@ import re
 import csv
 import argparse
 import os
+from tqdm.auto import tqdm
 
 parser = argparse.ArgumentParser(description='Read contents of CSV files')
 parser.add_argument('files', metavar='file', nargs='*',
@@ -53,7 +54,7 @@ def contains_three_continuous_chars(sentence):
 
 
 dataset = []
-for text in input_text_list:
+for text in tqdm(input_text_list):
     text = preprocess(text)
     extracted_content = extract_continuous_emojis(text)
     for input_text, output_text in extracted_content:
@@ -66,15 +67,32 @@ for text in input_text_list:
         dataset.append({"input": input_text, "output": output_text})
 
 print(f"Total {len(dataset)} lines after preprocessing")
-print(
-    f"Samples with longer than 128 chars: {len([d for d in dataset if len(d['input']) > 128])}")
 
+# Remove consecutive lines with the same output of more than 3
+prev_output = ""
+prev_count = 0
+dataset_without_duplicates = []
+for data in dataset:
+    if data["output"] == prev_output:
+        prev_count += 1
+    else:
+        prev_count = 0
+    if prev_count < 3:
+        dataset_without_duplicates.append(data)
+    prev_output = data["output"]
+dataset = dataset_without_duplicates
+
+print(f"Total {len(dataset)} lines after duplicate removal")
+print(
+    f"Samples with longer than 128 input chars: {len([d for d in dataset if len(d['input']) > 128])}")
+print(
+    f"Samples with longer than 6 output chars: {len([d for d in dataset if len(d['output']) > 6])}")
 with jsonlines.open("emoji_dataset/dataset.jsonl", "w") as writer:
     writer.write_all(dataset)
 
 
-# count output emoji frequency
-output_emoji_counter = Counter()
-for text in dataset:
-    output_emoji_counter.update(text['output'])
-print(output_emoji_counter)
+# # count output emoji frequency
+# output_emoji_counter = Counter()
+# for text in dataset:
+#     output_emoji_counter.update(text['output'])
+# print(output_emoji_counter)
