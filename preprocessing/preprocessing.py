@@ -27,9 +27,10 @@ with open("datasets/dump_20231204.json", "r") as f:
             if choose:
                 in_content.append(
                     data["Content"]
-                    .replace("\u2009", "")
+                    .replace("\u2009", " ")
                     .replace("\u200c", "")
                     .replace("\u200d", "")
+                    .replace("\ufe0f", "")
                     .replace("\n", " ")
                 )
             else:
@@ -61,19 +62,21 @@ def contains_three_continuous_chars(sentence):
 
 
 in_out_split = []
+count = 0
 for data in in_content:
     extracted_content = extract_continuous_emojis(data)
     for input, output in extracted_content:
         input = postprocess(input)
         output = postprocess(output)
-
         if len(input) <= 3:
             continue
         if contains_three_continuous_chars(input):
             continue
-
+        if len(input) > 128:
+            # print(input)
+            count += 1
         in_out_split.append({"input": input, "output": output})
-
+print(count)
 
 with jsonlines.open("emoji_dataset/dataset.jsonl", "w") as writer:
     writer.write_all(in_out_split)
