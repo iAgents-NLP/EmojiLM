@@ -36,6 +36,7 @@ def main():
     os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     dataset_name = "emoji_dataset"
     model_name = "google/mt5-base"
+    output_dir = "EmojiLMSeq2SeqLoRA"
 
     task_prefix = "emoji: "
     max_length = 128
@@ -83,7 +84,7 @@ def main():
         decoded_labels = tokenizer.batch_decode(
             labels, skip_special_tokens=True)
 
-        output_file = f"results/predictions_{current_eval_epoch}.jsonl"
+        output_file = f"{output_dir}/predictions_{current_eval_epoch}.jsonl"
         output_jsonl = []
         for input_text, output_text, gt_text in zip(decoded_inputs, decoded_preds, decoded_labels):
             output_dict = {
@@ -125,7 +126,7 @@ def main():
         # Data & Saving
         dataloader_num_workers=4,
         generation_max_length=5,
-        output_dir="./EmojiLMSeq2SeqLoRA",
+        output_dir=output_dir,
         predict_with_generate=True,
         evaluation_strategy="epoch",
         logging_steps=100,
