@@ -38,7 +38,8 @@ class EmojiLM:
         return ret
 
     def push_to_hub(self):
-        self.model.push_to_hub("EmojiLMSeq2SeqLoRA", private=False)
+        merged_model = self.model.merge_and_unload()
+        merged_model.push_to_hub("EmojiLMSeq2SeqLoRA", private=False)
         self.tokenizer.push_to_hub("EmojiLMSeq2SeqLoRA", private=False)
 
 
@@ -56,7 +57,7 @@ def main():
     if args.upload:
         EmojiLmWorker.push_to_hub()
         from datasets import load_dataset
-        dataset = load_dataset('emoji_dataset')
+        dataset = load_dataset('./emoji_dataset')
         dataset.push_to_hub("EmojiAppendDataset", private=True)
     while True:
         try:
