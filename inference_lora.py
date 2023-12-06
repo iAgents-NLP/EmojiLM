@@ -1,20 +1,18 @@
-import torch
-import os
 import argparse
+import os
 
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+import torch
 from peft import PeftConfig, PeftModel
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
 
 class EmojiLM:
-    def __init__(self, model_name, lora_path, upload_to_hub=False) -> None:
+    def __init__(self, model_name, lora_path) -> None:
         self.device = 'cuda'
         self.task_prefix = "emoji: "
         self.prepare_model(model_name, lora_path)
         text_input = "那你很厲害誒"
         print("開機測試：", text_input, self.serve(text_input))
-        if upload_to_hub:
-            self.model.push_to_hub("EmojiLM_Seq2SeqLM_LoRA", private=True)
 
     def prepare_model(self, model_name, lora_path):
         self.tokenizer = AutoTokenizer.from_pretrained(
@@ -33,11 +31,15 @@ class EmojiLM:
         model_inputs = self.tokenizer(
             inputs, max_length=128, padding='do_not_pad', truncation=True, return_tensors="pt")
         outputs = self.model.generate(
-            input_ids=model_inputs["input_ids"].to(self.device), max_new_tokens=5, do_sample=True, top_p=0.9, top_k=0, temperature=0.8)
+            input_ids=model_inputs["input_ids"].to(self.device), max_new_tokens=5, do_sample=True)
 
         ret = self.tokenizer.batch_decode(
             outputs.detach().cpu().numpy(), skip_special_tokens=True)[0]
         return ret
+
+    def push_to_hub(self):
+        self.model.push_to_hub("EmojiLMSeq2SeqLoRA", private=False)
+        self.tokenizer.push_to_hub("EmojiLMSeq2SeqLoRA", private=False)
 
 
 def parse_args():
@@ -50,13 +52,18 @@ def parse_args():
 
 def main():
     args = parse_args()
-    LM = EmojiLM(args.model, args.lora, args.upload)
+    EmojiLmWorker = EmojiLM(args.model, args.lora)
+    if args.upload:
+        EmojiLmWorker.push_to_hub()
+        from datasets import load_dataset
+        dataset = load_dataset('emoji_dataset')
+        dataset.push_to_hub("EmojiAppendDataset", private=True)
     while True:
         try:
             inp = input("Enter input: ")
         except (KeyboardInterrupt, EOFError):
             break
-        print(inp, LM.serve(inp))
+        print(inp, EmojiLmWorker.serve(inp))
 
 
 if __name__ == "__main__":

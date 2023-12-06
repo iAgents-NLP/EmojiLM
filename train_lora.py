@@ -134,9 +134,6 @@ def main():
         overwrite_output_dir=True,
         include_inputs_for_metrics=True,
         save_total_limit=10,
-        # hub
-        push_to_hub=True,
-        hub_strategy='end',
     )
 
     trainer = Seq2SeqTrainer(
