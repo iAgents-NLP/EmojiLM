@@ -101,7 +101,7 @@ def main():
         return {}
 
     peft_config = LoraConfig(
-        task_type=TaskType.SEQ_2_SEQ_LM, inference_mode=False, r=4, lora_alpha=32, lora_dropout=0.1
+        task_type=TaskType.SEQ_2_SEQ_LM, inference_mode=False, r=16, lora_alpha=32, lora_dropout=0.1
     )
 
     model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
@@ -120,7 +120,7 @@ def main():
         per_device_train_batch_size=24,
         per_device_eval_batch_size=24,
         learning_rate=1e-4,
-        num_train_epochs=100,
+        num_train_epochs=150,
         warmup_steps=500,
         label_smoothing_factor=0.1,
         # Data & Saving
