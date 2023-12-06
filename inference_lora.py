@@ -22,6 +22,7 @@ class EmojiLM:
         # peft_config = PeftConfig.from_pretrained(lora_path)
         model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
         self.model = PeftModel.from_pretrained(model, lora_path)
+        self.model = self.model.merge_and_unload()
         self.model.eval()
         self.model.to(self.device)
 
@@ -31,15 +32,14 @@ class EmojiLM:
         model_inputs = self.tokenizer(
             inputs, max_length=128, padding='do_not_pad', truncation=True, return_tensors="pt")
         outputs = self.model.generate(
-            input_ids=model_inputs["input_ids"].to(self.device), max_new_tokens=5, do_sample=True)
+            input_ids=model_inputs["input_ids"].to(self.device), max_new_tokens=5, do_sample=False)
 
         ret = self.tokenizer.batch_decode(
             outputs.detach().cpu().numpy(), skip_special_tokens=True)[0]
         return ret
 
     def push_to_hub(self):
-        merged_model = self.model.merge_and_unload()
-        merged_model.push_to_hub("EmojiLMSeq2SeqLoRA", private=False)
+        self.model.push_to_hub("EmojiLMSeq2SeqLoRA", private=False)
         self.tokenizer.push_to_hub("EmojiLMSeq2SeqLoRA", private=False)
 
 
