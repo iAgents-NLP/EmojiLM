@@ -47,10 +47,16 @@ def extract_continuous_emojis(text):
     return matches
 
 
+reject_list = open("emoji_dataset/reject_list.txt", "r").read().splitlines()
+reject_pattern = '[' + ''.join(reject_list) + ']'
+
+
 def postprocess(text):
+    text = re.sub(reject_pattern, '', text)
     text = re.sub(r"\ufffd", "", text)
     text = re.sub(r"https?://\S+|www\.\S+", "", text)
     text = re.sub(r"^[\s,。、，]+|[\s,。、，]+$", "", text)
+
     return text
 
 
@@ -129,6 +135,10 @@ emoji_counter = Counter()
 for text in dataset:
     emoji_counter.update(text['output'])
 print(emoji_counter)
+
+# for k, v in emoji_counter.items():
+#     if v == 2:
+#         open("emoji_dataset/reject_list.txt", "a").write(k + "\n")
 
 print("Plotting...")
 input_lengths = [len(d['input']) for d in dataset]
