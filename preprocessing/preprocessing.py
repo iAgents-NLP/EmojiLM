@@ -22,7 +22,7 @@ if len(csv_files) == 0:
     csv_files = [os.path.join("emoji_dataset", f)
                  for f in os.listdir("emoji_dataset")
                  if f.endswith(".csv")]
-
+print(f"Reading from {csv_files}")
 input_text_list = []
 for filename in csv_files:
     with open(filename) as f:
@@ -60,6 +60,10 @@ def contains_three_continuous_chars(sentence):
     return bool(match)
 
 
+def contains_only_ascii(s):
+    return bool(re.match('^[\x00-\x7F]+$', s))
+
+
 dataset = []
 for text in tqdm(input_text_list):
     text = preprocess(text)
@@ -67,8 +71,6 @@ for text in tqdm(input_text_list):
     for input_text, output_text in extracted_content:
         input_text = postprocess(input_text)
         output_text = postprocess(output_text)
-        if len(input_text) < 3:
-            continue
         if contains_three_continuous_chars(input_text):
             continue
         if len(input_text) == 0 or len(output_text) == 0:
@@ -96,7 +98,7 @@ print(
     f"Samples with longer than 128 input chars: {len([d for d in dataset if len(d['input']) > 128])}")
 print(
     f"Samples with longer than 6 output chars: {len([d for d in dataset if len(d['output']) > 6])}")
-with jsonlines.open("emoji_dataset/dataset.jsonl", "w") as writer:
+with jsonlines.open("emoji_dataset/train.jsonl", "w") as writer:
     writer.write_all(dataset)
 
 
@@ -123,13 +125,10 @@ def split_jsonl(input_file, train_file, val_file, split_ratio=0.8):
             writer_val.write(item)
 
 
-input_jsonl = 'emoji_dataset/dataset.jsonl'
-train_output = 'emoji_dataset/train.jsonl'
-val_output = 'emoji_dataset/val.jsonl'
-
-split_ratio = 0.95
-split_jsonl(input_jsonl, train_output, val_output, split_ratio)
-
+emoji_counter = Counter()
+for text in dataset:
+    emoji_counter.update(text['output'])
+print(emoji_counter)
 
 print("Plotting...")
 input_lengths = [len(d['input']) for d in dataset]
