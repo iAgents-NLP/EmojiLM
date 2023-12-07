@@ -82,30 +82,59 @@ for text in tqdm(input_text_list):
         if len(input_text) == 0 or len(output_text) == 0:
             continue
         dataset.append({"input": input_text, "output": output_text})
-
+print("##########")
 print(f"Total {len(dataset)} lines after preprocessing")
 
 # Remove consecutive lines with the same output of more than 3
 prev_output = ""
 prev_count = 0
-dataset_without_duplicates = []
+dataset_without_consecutives = []
 for data in dataset:
     if data["output"] == prev_output:
         prev_count += 1
     else:
         prev_count = 0
     if prev_count < 3:
-        dataset_without_duplicates.append(data)
+        dataset_without_consecutives.append(data)
     prev_output = data["output"]
-dataset = dataset_without_duplicates
+dataset = dataset_without_consecutives
 
+print("##########")
+print(f"Total {len(dataset)} lines after consecutive removal")
+
+# Remove duplicate inputs if the output appears many times
+emoji_counter = Counter()
+for text in dataset:
+    emoji_counter.update(text['output'])
+
+unique_dataset = []
+seen = set()
+for data in dataset:
+    if (data['input'], data['output']) not in seen:
+        unique_dataset.append(data)
+        seen.add((data['input'], data['output']))
+    else:
+        if sum(emoji_counter[c] for c in data['output']) < 3 * len(data['output']):
+            unique_dataset.append(data)
+dataset = unique_dataset
+
+print("##########")
 print(f"Total {len(dataset)} lines after duplicate removal")
+
+print("##########")
 print(
     f"Samples with longer than 128 input chars: {len([d for d in dataset if len(d['input']) > 128])}")
 print(
-    f"Samples with longer than 6 output chars: {len([d for d in dataset if len(d['output']) > 6])}")
+    f"Samples with >6 output chars: {len([d for d in dataset if len(d['output']) > 6])}")
+print("##########")
+
 with jsonlines.open("emoji_dataset/train.jsonl", "w") as writer:
     writer.write_all(dataset)
+
+emoji_counter = Counter()
+for text in dataset:
+    emoji_counter.update(text['output'])
+print(emoji_counter)
 
 
 def split_jsonl(input_file, train_file, val_file, split_ratio=0.8):
@@ -130,15 +159,6 @@ def split_jsonl(input_file, train_file, val_file, split_ratio=0.8):
         for item in val_data:
             writer_val.write(item)
 
-
-emoji_counter = Counter()
-for text in dataset:
-    emoji_counter.update(text['output'])
-print(emoji_counter)
-
-# for k, v in emoji_counter.items():
-#     if v == 2:
-#         open("emoji_dataset/reject_list.txt", "a").write(k + "\n")
 
 print("Plotting...")
 input_lengths = [len(d['input']) for d in dataset]
