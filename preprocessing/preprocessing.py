@@ -39,10 +39,12 @@ def preprocess(text):
     return text
 
 
+with open("emoji_dataset/emojis.txt", "r") as f:
+    emojis = f.readline()
+
+
 def extract_continuous_emojis(text):
-    with open("emoji_dataset/emojis.txt", "r") as f:
-        pattern = f.readline()
-    pattern = f"([^{pattern}]+)([{pattern}|\n]+)"
+    pattern = f"([^{emojis}]+)([{emojis}|\n]+)"
     matches = re.findall(pattern, text)
     return matches
 
