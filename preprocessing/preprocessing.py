@@ -76,8 +76,12 @@ dataset = []
 for text in tqdm(input_text_list):
     text = preprocess(text)
     extracted_content = extract_continuous_emojis(text)
+    prev_input = ""
     for input_text, output_text in extracted_content:
         input_text = postprocess(input_text)
+        input_text = prev_input + input_text
+        prev_input = input_text + output_text + " "
+
         output_text = postprocess(output_text)
         if contains_three_continuous_chars(input_text):
             continue
@@ -161,6 +165,9 @@ def split_jsonl(input_file, train_file, val_file, split_ratio=0.8):
         for item in val_data:
             writer_val.write(item)
 
+
+# split_jsonl("emoji_dataset/train.jsonl", "emoji_dataset/train.jsonl",
+#             "emoji_dataset/val.jsonl", 0.98)
 
 print("Plotting...")
 input_lengths = [len(d['input']) for d in dataset]
