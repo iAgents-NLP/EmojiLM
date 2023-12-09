@@ -33,7 +33,8 @@ class SampleLabelCollator(DataCollatorForSeq2Seq):
 
 
 def main():
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    os.environ['CUDA_VISIBLE_DEVICES'] = \
+        os.environ.get('CUDA_VISIBLE_DEVICES', '0').split(",")[0]
     dataset_name = "./emoji_dataset"
     model_name = "google/mt5-base"
     output_dir = "EmojiLMSeq2SeqLoRA"
